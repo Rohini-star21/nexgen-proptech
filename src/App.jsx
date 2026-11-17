@@ -197,9 +197,14 @@ function NextGen(){return <section className="sec alt"><div className="wrap spli
 const EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 function useSend(kind){
   const [st,setSt]=useState('idle');
-  const send=async data=>{setSt('sending');
+  const send=async({website='',...data})=>{setSt('sending');
     try{
-      if(CFG.endpoint&&(CFG.accessKey||!/web3forms/.test(CFG.endpoint))){
+      if(CFG.script){
+        // Google Apps Script web app: text/plain avoids the CORS preflight that Apps Script cannot answer
+        const r=await fetch(CFG.script,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({kind,website,...data})});
+        const j=await r.json();
+        if(!j.ok)throw new Error('send');
+      }else if(CFG.endpoint&&(CFG.accessKey||!/web3forms/.test(CFG.endpoint))){
         const r=await fetch(CFG.endpoint,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({...(CFG.accessKey?{access_key:CFG.accessKey}:{}),subject:kind==='news'?'New newsletter subscriber':'New message from NexGen website',...data})});
         if(!r.ok)throw new Error('send');
       }else{
@@ -301,12 +306,12 @@ function Field({id,name,label,type='text',area,value,onChange,onBlur,bad,good}){
   return <div className={'cf'+(value?' fill':'')+(bad?' bad':'')+(good?' good':'')}><P2 id={id} name={name} type={area?undefined:type} rows={area?6:undefined} value={value} onChange={onChange} onBlur={onBlur} aria-invalid={bad?'true':'false'} aria-required="true"/><label htmlFor={id}>{label}</label><i className="cf-ic" aria-hidden="true"/></div>;
 }
 function ContactPage(){
-  const [v,setV]=useState({name:'',email:'',message:''}),[t,setT]=useState({}),[st,send,reset]=useSend('contact');
+  const [v,setV]=useState({name:'',email:'',message:''}),[t,setT]=useState({}),[hp,setHp]=useState(''),[st,send,reset]=useSend('contact');
   const ok={name:v.name.trim().length>=2,email:EMAIL.test(v.email),message:v.message.trim().length>=10};
   useEffect(()=>{if(st!=='sent')return;const a=setTimeout(()=>{setV({name:'',email:'',message:''});setT({})},2600),b=setTimeout(reset,4200);return()=>{clearTimeout(a);clearTimeout(b)}},[st]);
   const on=k=>e=>{const val=e.target.value;setV(o=>({...o,[k]:val}));if(st!=='idle')reset()};
   const bl=k=>()=>v[k]&&setT(o=>({...o,[k]:true}));
-  const sub=async e=>{e.preventDefault();setT({name:1,email:1,message:1});if(ok.name&&ok.email&&ok.message)await send({name:v.name,email:v.email,message:v.message})};
+  const sub=async e=>{e.preventDefault();setT({name:1,email:1,message:1});if(ok.name&&ok.email&&ok.message)await send({name:v.name,email:v.email,message:v.message,website:hp})};
   const fl=k=>({value:v[k],onChange:on(k),onBlur:bl(k),bad:!!t[k]&&!ok[k],good:ok[k]});
   return <section className="ct">
     <div className="ct-bg" aria-hidden="true"><i className="l"/><i className="r"/></div>
@@ -316,6 +321,7 @@ function ContactPage(){
         <Field id="c-name" name="text-216" label="Full Name" {...fl('name')}/>
         <Field id="c-email" name="email-826" label="Email" type="email" {...fl('email')}/>
         <Field id="c-msg" name="textarea-353" label="Message" area {...fl('message')}/>
+        <input className="hp" type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" value={hp} onChange={e=>setHp(e.target.value)}/>
         <button className={'cf-btn '+st} type="submit" disabled={st==='sending'}><i className="bi" aria-hidden="true">↗</i><span className="cf-lbl">Send a message</span><Ic/></button>
         <span className="sr" role="status" aria-live="polite">{st==='sent'?'Message sent':st==='error'?'Something went wrong, please try again':''}</span></form>
       <aside className="cinfo ct-dark" onMouseMove={spot}><h3 className="ci-h">Get Consultation</h3><p className="lead">Reach our investment specialists for tailored guidance, platform demos or partnership opportunities. We respond within one business day, ensuring swift, expert assistance.</p>

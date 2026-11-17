@@ -734,3 +734,19 @@ html,body{max-width:100%;overflow-x:clip}
 
 /* v17: hero copy fade-in lives on inner wrapper so GSAP scroll-fade reads true opacity */
 .hero-copy{animation:none}.hc-in{animation:in .8s both}
+
+/* ===== v18: About top section - content sits slightly lower, even spacing, no dead gap under the tab text ===== */
+.apt{padding-top:calc(var(--hh) + clamp(72px,9vw,130px));padding-bottom:clamp(90px,12vw,170px)}
+.apt .split{align-items:start}
+.apt .split>div:first-child{padding-top:clamp(28px,4.5vw,68px)}
+.apt .tabs.seg{margin:clamp(24px,2.4vw,32px) 0 clamp(22px,2.2vw,30px)}
+/* only the active tab's text takes up space, so the Contact Us button follows it directly */
+.apt .tabbody{display:block;margin-bottom:clamp(30px,3.2vw,44px)}
+.apt .tabbody .tp{display:none;transition:none}
+.apt .tabbody .tp.on{display:block}
+.apt .tabbody .tp>:last-child{margin-bottom:0}
+.apt .sub-h{margin:0 0 14px}
+@media(max-width:900px){.apt .split>div:first-child{padding-top:0}}
+
+/* v18: spam-trap field, invisible to people */
+.hp{position:absolute!important;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
