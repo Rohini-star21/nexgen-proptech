@@ -194,10 +194,40 @@ function NextGen(){return <section className="sec alt"><div className="wrap spli
   <p className="lead">Our AI-powered underwriting engine, transparent reporting and fractional ownership model deliver superior risk-adjusted returns from day one.</p><Btn href="#/contact">For More Details</Btn></div>
   <div className="orbit"><Mask k={2} shape="sh-circle" w={900} h={900}/><i className="orb r1"/><i className="orb r2"/><i className="odot d1"/><i className="odot d2"/></div></div></section>;}
 
+// ---- Toast notifications (success / error) ----
+const TOAST_EVT='nx-toast';
+const toast=d=>window.dispatchEvent(new CustomEvent(TOAST_EVT,{detail:d}));
+const TMSG={
+  contact:{ok:['Thank you for your interest!','Your message has reached NexGen Proptech. Our team will connect with you shortly.'],bad:['Message not sent','Something went wrong on our side. Please try again in a moment.']},
+  news:{ok:['You\u2019re on the list!','Thanks for subscribing. Our team will be in touch shortly with exclusive opportunities.'],bad:['Subscription failed','We couldn\u2019t add you just now. Please try again in a moment.']}
+};
+function Toaster(){
+  const [items,setItems]=useState([]);
+  const id=useRef(0);
+  useEffect(()=>{const h=e=>{const n=++id.current;setItems(a=>[...a.slice(-2),{id:n,...e.detail}])};addEventListener(TOAST_EVT,h);return()=>removeEventListener(TOAST_EVT,h)},[]);
+  const close=n=>setItems(a=>a.filter(x=>x.id!==n));
+  return <div className="toasts" aria-live="polite" aria-atomic="false">{items.map(t=><ToastItem key={t.id} t={t} close={close}/>)}</div>;
+}
+function ToastItem({t,close}){
+  const [out,setOut]=useState(false),timer=useRef(null),left=useRef(6500),start=useRef(0);
+  const run=()=>{start.current=Date.now();timer.current=setTimeout(()=>dismiss(),left.current)};
+  const pause=()=>{clearTimeout(timer.current);left.current=Math.max(1200,left.current-(Date.now()-start.current))};
+  const dismiss=()=>{setOut(true);setTimeout(()=>close(t.id),320)};
+  useEffect(()=>{run();return()=>clearTimeout(timer.current)},[]);
+  const ok=t.type==='success';
+  return <div className={'toast '+(ok?'ok':'er')+(out?' out':'')} role={ok?'status':'alert'} onMouseEnter={pause} onMouseLeave={run} onFocus={pause} onBlur={run}>
+    <span className="t-ic" aria-hidden="true"><svg viewBox="0 0 24 24">{ok?<path d="M5 12.5l4.5 4.5L19 7.5"/>:<path d="M12 7v6M12 17h.01"/>}</svg></span>
+    <div className="t-tx"><strong>{t.title}</strong><p>{t.msg}</p></div>
+    <button type="button" className="t-x" aria-label="Dismiss notification" onClick={dismiss}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <i className="t-bar" style={{animationDuration:'6.5s'}} aria-hidden="true"/>
+  </div>;
+}
+
 const EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 function useSend(kind){
   const [st,setSt]=useState('idle');
   const send=async({website='',...data})=>{setSt('sending');
+    let real=true;
     try{
       if(CFG.script){
         // Google Apps Script web app: text/plain avoids the CORS preflight that Apps Script cannot answer
@@ -208,11 +238,13 @@ function useSend(kind){
         const r=await fetch(CFG.endpoint,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({...(CFG.accessKey?{access_key:CFG.accessKey}:{}),subject:kind==='news'?'New newsletter subscriber':'New message from NexGen website',...data})});
         if(!r.ok)throw new Error('send');
       }else{
+        real=false;
         const body=Object.entries(data).map(([k,v])=>k+': '+v).join('\n');
         location.href='mailto:'+CFG.to+'?subject='+encodeURIComponent(kind==='news'?'Newsletter subscription':'Website enquiry')+'&body='+encodeURIComponent(body);
       }
       setSt('sent');
-    }catch(e){setSt('error')}};
+      if(real)toast({type:'success',title:TMSG[kind].ok[0],msg:TMSG[kind].ok[1]});
+    }catch(e){setSt('error');toast({type:'error',title:TMSG[kind].bad[0],msg:TMSG[kind].bad[1]})}};
   return [st,send,()=>setSt('idle')];
 }
 const Ic=()=><><svg className="ic-sp" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9"/></svg><svg className="ic-ok" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><svg className="ic-er" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></>;
@@ -353,5 +385,5 @@ export default function App(){
       ScrollTrigger.create({trigger:el,start:'top 92%',once:true,onEnter:()=>{const o={v:0};gsap.to(o,{v:n,duration:1.6,ease:'power2.out',onUpdate:()=>{const x=Math.round(o.v);el.textContent=cm?x.toLocaleString('en-US'):x}})}})});
     const rf=()=>ScrollTrigger.refresh();addEventListener('load',rf);return()=>removeEventListener('load',rf);
   });return()=>c.revert()},[route]);
-  return <><i className="pbar"/><Cursor/><Header theme={theme} toggle={toggle} route={route}/><main key={route}>{route==='home'&&<><Hero/><Opportunities/><About/><Insights/><Tools/><Process/><Faq/><NextGen/><Newsletter/></>}{route==='about'&&<AboutPage/>}{route==='projects'&&<ProjectsPage/>}{route==='contact'&&<ContactPage/>}</main><Footer/></>;
+  return <><i className="pbar"/><Cursor/><Toaster/><Header theme={theme} toggle={toggle} route={route}/><main key={route}>{route==='home'&&<><Hero/><Opportunities/><About/><Insights/><Tools/><Process/><Faq/><NextGen/><Newsletter/></>}{route==='about'&&<AboutPage/>}{route==='projects'&&<ProjectsPage/>}{route==='contact'&&<ContactPage/>}</main><Footer/></>;
 }

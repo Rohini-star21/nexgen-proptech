@@ -1,6 +1,7 @@
-# NexGen Proptech - Header + Hero + Footer only
+# NexGen Proptech
 npm install && npm run dev  -> http://localhost:5173
-npm run build -> dist/
-Images in public/img.
+npm run build -> dist/   (upload dist to your host)
 
-Photos: hot-linked free Unsplash photos (internet needed); if one fails, the local illustration in public/img is used. To use your own photos, change the ids in HIMG/SIDE at the top of src/App.jsx or drop files into public/img.
+Contact + newsletter forms: see GOOGLE_MAIL_SETUP.md (branded alert mail to the team inbox, success toast).
+Mail templates live in docs/Code.gs. Toast styles: end of src/styles.css (search "toast notifications").
+Images in public/img.
